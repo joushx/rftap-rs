@@ -1,0 +1,14 @@
+[package]
+name = "rftap"
+version = "0.1.0"
+authors = ["Johannes Mittendorfer"]
+edition = "2024"
+description = "Parser and serializer for RFTap protocol"
+repository = "https://github.com/joushx/rftap-rs"
+
+[dependencies]
+anyhow = "1.0.75"
+byteorder = "1.5.0"
+
+[dev-dependencies]
+hex = "0.4.3"
