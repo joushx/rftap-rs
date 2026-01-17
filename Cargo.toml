@@ -12,3 +12,4 @@ byteorder = "1.5.0"
 
 [dev-dependencies]
 hex = "0.4.3"
+pcap-file = "2.0"

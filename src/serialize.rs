@@ -93,6 +93,20 @@ impl<'a> RFTapPacket<'a> {
             buffer.write_f64::<LittleEndian>(alt)?;
         }
 
+        for tag in &self.tags {
+            buffer.write_u16::<LittleEndian>(tag.id)?;
+            buffer.write_u8(tag.length)?;
+            buffer.write_u8(tag.flags)?;
+            buffer.extend(&tag.value);
+            let tag_total_bytes = 4 + tag.value.len();
+            let tag_padded = ((tag_total_bytes + 3) / 4) * 4;
+            let padding = tag_padded - tag_total_bytes;
+            for _ in 0..padding {
+                buffer.write_u8(0)?;
+            }
+            length_32 += (tag_padded / 4) as u16;
+        }
+
         LittleEndian::write_u16(&mut buffer[4..6], length_32);
         LittleEndian::write_u16(&mut buffer[6..8], flags);
 

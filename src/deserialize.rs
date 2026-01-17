@@ -10,20 +10,7 @@ impl<'a> RFTapPacket<'a> {
         }
 
         let mut result = Self {
-            dlt: None,
-            freq: None,
-            nomfreq: None,
-            payload: &[],
-            freqofs: None,
-            power: None,
-            isdbm: false,
-            noise: None,
-            snr: None,
-            isunixtime: false,
-            qual: None,
-            time: None,
-            duration: None,
-            location: None
+            ..Default::default()
         };
 
         if input[0..4] != vec![b'R', b'F', b't', b'a'] {
@@ -104,7 +91,30 @@ impl<'a> RFTapPacket<'a> {
             current_position += 24
         }
 
-        result.payload = &input[current_position..];
+
+        // tags
+        while current_position + 4 <= header_length {
+            let tag_id = LittleEndian::read_u16(&input[current_position..current_position+2]);
+            let tag_len = input[current_position+2];
+            let tag_flags = input[current_position+3];
+            current_position += 4;
+
+            if current_position + tag_len as usize > header_length {
+                bail!("Tag length extends beyond header");
+            }
+
+            let tag_value = input[current_position..current_position+tag_len as usize].to_vec();
+            current_position += tag_len as usize;
+
+            result.tags.push(Tag {
+                id: tag_id,
+                length: tag_len,
+                flags: tag_flags,
+                value: tag_value,
+            });
+        }
+
+        result.payload = &input[header_length..];
 
         Ok(result)
     }

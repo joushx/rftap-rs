@@ -31,7 +31,14 @@ const LOCATION: usize = 12;
 // 14 Reserved, must be 0
 // 15 Reserved, must be 0
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TagId {
+    /// Name of sub-dissector used for packet data (alternative to DLT field)
+    /// only used in Wireshark and flags must be 0xff
+    DissectorName = 16,
+}
+
+#[derive(Debug, PartialEq, Default)]
 pub struct RFTapPacket<'a> {
     pub dlt: Option<u32>,
     pub freq: Option<f64>,
@@ -46,7 +53,28 @@ pub struct RFTapPacket<'a> {
     pub time: Option<u128>,
     pub duration: Option<f64>,
     pub location: Option<(f64, f64, f64)>,
+    pub tags: Vec<Tag>,
     pub payload: &'a [u8]
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Tag {
+    pub id: u16,
+    pub length: u8,
+    pub flags: u8,
+    pub value: Vec<u8>
+}
+
+impl Tag {
+    pub fn new(id: u16, flags: u8, value: Vec<u8>) -> Self {
+        let length = value.len() as u8;
+        Tag {
+            id,
+            length,
+            flags,
+            value,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -69,6 +97,9 @@ mod tests {
             time: Some(1751558597250044416),
             duration: Some(33.0),
             location: Some((48.0, 14.0, 440.0)),
+            tags: vec![
+                Tag::new(TagId::DissectorName as u16, 255, b"r09".to_vec())
+            ],
             payload: &vec![0xff, 0xff, 0xff]
         };
 
