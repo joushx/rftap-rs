@@ -1,0 +1,19 @@
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: rftap-rs
+  description: Rust RFtap library
+spec:
+  domain: rf
+  owner: user:johannes
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: rftap-rs
+spec:
+  type: library
+  lifecycle: production
+  owner: user:johannes
+  system: rftap-rs
