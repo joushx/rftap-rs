@@ -1,11 +1,9 @@
-use anyhow::Result;
-
 use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
 
 use crate::{RFTapPacket, *};
 
 impl<'a> RFTapPacket<'a> {
-    pub fn serialize(&self) -> Result<Vec<u8>> {
+    pub fn serialize(&self) -> Result<Vec<u8>, std::io::Error> {
         let mut buffer: Vec<u8> = vec![
             b'R', b'F', b't', b'a', // magic
             0, 0, // placeholder for size

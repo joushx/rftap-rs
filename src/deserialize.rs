@@ -1,12 +1,11 @@
-use anyhow::{bail, Result};
 use byteorder::{ByteOrder, LittleEndian};
 
 use crate::{RFTapPacket, *};
 
 impl<'a> RFTapPacket<'a> {
-    pub fn parse(input: &'a [u8]) -> Result<Self> {
+    pub fn parse(input: &'a [u8]) -> Result<Self, std::io::Error> {
         if input.len() < 8 {
-            bail!("Input too short")
+            return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Input too short"));
         }
 
         let mut result = Self {
@@ -27,12 +26,12 @@ impl<'a> RFTapPacket<'a> {
         };
 
         if input[0..4] != vec![b'R', b'F', b't', b'a'] {
-            bail!("Cannot find magic header")
+            return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Cannot find magic header"));
         }
 
         let header_length: usize = (LittleEndian::read_u16(&input[4..6]) * 4) as usize;
         if input.len() < header_length {
-            bail!("Input is shorter than indicated")
+            return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Input is shorter than indicated"));
         }
 
         let flags: u16 = LittleEndian::read_u16(&input[6..8]);
@@ -131,7 +130,7 @@ mod tests {
         //     Time (fractional part): 0.263090372 seconds
         //     Time: 1671290426.263090 seconds
 
-        let data = hex::decode( "524674610a00250694000000000000004368a341000000000000808e77e7d8410000000079d6d03f").unwrap();
+        let data = hex::decode("524674610a00250694000000000000004368a341000000000000808e77e7d8410000000079d6d03f").unwrap();
         let packet = RFTapPacket::parse(&data).unwrap();
 
         assert_eq!(packet.dlt.unwrap(), 148);
