@@ -120,7 +120,7 @@ impl<'a> RFTapPacket<'a> {
                 input.get(current_position+8..current_position+16)
                     .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "Input too short for time.frac"))?
             );
-            result.time = Some(seconds_to_nanoseconds(int_part, frac_part));
+            result.time = Some((int_part, frac_part));
             current_position += 16;
         }
 
@@ -156,12 +156,6 @@ impl<'a> RFTapPacket<'a> {
     }
 }
 
-fn seconds_to_nanoseconds(int_part: f64, frac_part: f64) -> u128 {
-    let total_seconds = int_part + frac_part;
-    (total_seconds * 1_000_000_000.0) as u128
-}
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -189,7 +183,9 @@ mod tests {
         assert!(packet.noise.is_none());
         assert!(packet.snr.is_none());
         assert_eq!(packet.isunixtime, true);
-        assert_eq!(packet.time.unwrap(), 1671290426263090432);
+        let (time_int, time_frac) = packet.time.unwrap();
+        assert_eq!(time_int, 1671290426.0);
+        assert!((time_frac - 1671290426.0) < 0.000001);
         assert!(packet.duration.is_none());
         assert!(packet.location.is_none());
         assert_eq!(packet.payload.len(), 0)

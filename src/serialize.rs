@@ -126,7 +126,7 @@ impl<'a> RFTapPacket<'a> {
         }
 
         if let Some(time) = self.time {
-            let (int_time, frac_time) = nanoseconds_to_seconds_parts(time);
+            let (int_time, frac_time) = time;
             length_32 += 4;
             flags |= 1 << TIME;
 
@@ -201,11 +201,4 @@ impl<'a> RFTapPacket<'a> {
 
         Ok(buffer)
     }
-}
-
-fn nanoseconds_to_seconds_parts(nanoseconds: u128) -> (f64, f64) {
-    let total_seconds = nanoseconds as f64 / 1_000_000_000.0;
-    let int_part = total_seconds.floor();
-    let frac_part = total_seconds - int_part;
-    (int_part, frac_part)
 }

@@ -43,7 +43,7 @@ pub struct RFTapPacket<'a> {
     pub snr: Option<f32>,
     pub isunixtime: bool,
     pub qual: Option<f32>,
-    pub time: Option<u128>,
+    pub time: Option<(f64, f64)>,
     pub duration: Option<f64>,
     pub location: Option<(f64, f64, f64)>,
     pub payload: &'a [u8]
@@ -52,30 +52,49 @@ pub struct RFTapPacket<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
+    use proptest::option;
 
-    #[test]
-    fn test_all_fields_end_to_end() {
-        let packet = RFTapPacket {
-            dlt: Some(123),
-            freq: Some(1234566.0),
-            nomfreq: Some(67456745.0),
-            freqofs: Some(0.000003),
-            isdbm: false,
-            power: Some(12.3),
-            noise: Some(0.4),
-            snr: Some(99.9),
-            isunixtime: true,
-            qual: Some(100.0),
-            time: Some(1751558597250044416),
-            duration: Some(33.0),
-            location: Some((48.0, 14.0, 440.0)),
-            payload: &vec![0xff, 0xff, 0xff]
-        };
+    proptest! {
+        #[test]
+        fn test_all_fields_end_to_end(
+            dlt in option::of(0u32..std::u32::MAX),
+            freq in option::of(0f64..std::f64::MAX),
+            nomfreq in option::of(0f64..std::f64::MAX),
+            freqofs in option::of(0f64..std::f64::MAX),
+            isdbm in any::<bool>(),
+            power in option::of(0f32..std::f32::MAX),
+            noise in option::of(0f32..std::f32::MAX),
+            snr in option::of(0f32..std::f32::MAX),
+            isunixtime in any::<bool>(),
+            qual in option::of(0f32..std::f32::MAX),
+            time in option::of((0f64..std::f64::MAX, 0f64..std::f64::MAX)),
+            duration in option::of(0f64..std::f64::MAX),
+            location in option::of((-90.0f64..90.0, -180.0f64..180.0, -1000.0f64..10000.)),
+            payload in prop::collection::vec(any::<u8>(), 0..256)
+        ) {
+            let packet = RFTapPacket {
+                dlt,
+                freq,
+                nomfreq,
+                freqofs,
+                isdbm,
+                power,
+                noise,
+                snr,
+                isunixtime,
+                qual,
+                time,
+                duration,
+                location,
+                payload: payload.as_slice(),
+            };
 
-        let serialized = packet.serialize().unwrap();
+            let serialized = packet.serialize().unwrap();
 
-        let restored = RFTapPacket::parse(&serialized).unwrap();
+            let restored = RFTapPacket::parse(&serialized).unwrap();
 
-        assert_eq!(packet, restored)
+            assert_eq!(packet, restored)
+        }
     }
 }
