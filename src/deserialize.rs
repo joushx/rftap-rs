@@ -30,8 +30,10 @@ impl<'a> RFTapPacket<'a> {
         }
 
         let header_length: usize = (LittleEndian::read_u16(
-            input.get(4..6).ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "Input too short for header length"))?
-        ) * 4) as usize;
+            input.get(4..6).ok_or_else(|| {
+                std::io::Error::new(std::io::ErrorKind::InvalidInput, "Input too short for header length")
+            })?
+        ) as usize) * 4;
 
         if input.len() < header_length {
             return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Input is shorter than indicated"));
@@ -159,6 +161,7 @@ impl<'a> RFTapPacket<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
 
     #[test]
     fn test_against_wireshark() {
@@ -189,5 +192,18 @@ mod tests {
         assert!(packet.duration.is_none());
         assert!(packet.location.is_none());
         assert_eq!(packet.payload.len(), 0)
+    }
+
+    proptest! {
+        #[test]
+        fn test_does_not_panic(
+            payload in prop::collection::vec(any::<u8>(), 0..5)
+        ) {
+            let mut buf = Vec::new();
+            buf.extend(vec![b'R', b'F', b't', b'a']);
+            buf.extend(payload);
+
+            let _ = RFTapPacket::parse(&buf);
+        }
     }
 }
