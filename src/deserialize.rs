@@ -25,80 +25,127 @@ impl<'a> RFTapPacket<'a> {
             location: None
         };
 
-        if input[0..4] != vec![b'R', b'F', b't', b'a'] {
+        if input.get(0..4) != Some(b"RFta") {
             return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Cannot find magic header"));
         }
 
-        let header_length: usize = (LittleEndian::read_u16(&input[4..6]) * 4) as usize;
+        let header_length: usize = (LittleEndian::read_u16(
+            input.get(4..6).ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "Input too short for header length"))?
+        ) * 4) as usize;
+
         if input.len() < header_length {
             return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Input is shorter than indicated"));
         }
 
-        let flags: u16 = LittleEndian::read_u16(&input[6..8]);
+        let flags: u16 = LittleEndian::read_u16(
+            input.get(6..8).ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "Input too short for flags"))?
+        );
 
         let mut current_position: usize = 8;
 
         if (flags >> DLT) & 0b1 == 1 {
-            result.dlt = Some(LittleEndian::read_u32(&input[current_position..current_position+4]));
+            result.dlt = Some(LittleEndian::read_u32(
+                input.get(current_position..current_position+4)
+                    .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "Input too short for dlt"))?
+            ));
             current_position += 4
         }
 
         if (flags >> FREQ) & 0b1 == 1 {
-            result.freq = Some(LittleEndian::read_f64(&input[current_position..current_position+8]));
+            result.freq = Some(LittleEndian::read_f64(
+                input.get(current_position..current_position+8)
+                    .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "Input too short for freq"))?
+            ));
             current_position += 8
         }
 
         if (flags >> NOMFREQ) & 0b1 == 1 {
-            result.nomfreq = Some(LittleEndian::read_f64(&input[current_position..current_position+8]));
+            result.nomfreq = Some(LittleEndian::read_f64(
+                input.get(current_position..current_position+8)
+                    .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "Input too short for nomfreq"))?
+            ));
             current_position += 8
         }
 
         if (flags >> FREQOFS) & 0b1 == 1 {
-            result.freqofs = Some(LittleEndian::read_f64(&input[current_position..current_position+8]));
+            result.freqofs = Some(LittleEndian::read_f64(
+                input.get(current_position..current_position+8)
+                    .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "Input too short for freqofs"))?
+            ));
             current_position += 8
         }
 
         result.isdbm = (flags >> ISDBM) & 0b1 == 1;
 
         if (flags >> POWER) & 0b1 == 1 {
-            result.power = Some(LittleEndian::read_f32(&input[current_position..current_position+4]));
+            result.power = Some(LittleEndian::read_f32(
+                input.get(current_position..current_position+4)
+                    .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "Input too short for power"))?
+            ));
             current_position += 4
         }
 
         if (flags >> NOISE) & 0b1 == 1 {
-            result.noise = Some(LittleEndian::read_f32(&input[current_position..current_position+4]));
+            result.noise = Some(LittleEndian::read_f32(
+                input.get(current_position..current_position+4)
+                    .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "Input too short for noise"))?
+            ));
             current_position += 4
         }
 
         if (flags >> SNR) & 0b1 == 1 {
-            result.snr = Some(LittleEndian::read_f32(&input[current_position..current_position+4]));
+            result.snr = Some(LittleEndian::read_f32(
+                input.get(current_position..current_position+4)
+                    .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "Input too short for snr"))?
+            ));
             current_position += 4
         }
 
         if (flags >> QUAL) & 0b1 == 1 {
-            result.qual = Some(LittleEndian::read_f32(&input[current_position..current_position+4]));
+            result.qual = Some(LittleEndian::read_f32(
+                input.get(current_position..current_position+4)
+                    .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "Input too short for qual"))?
+            ));
             current_position += 4
         }
 
         result.isunixtime = (flags >> ISUNIXTIME) & 0b1 == 1;
 
         if (flags >> TIME) & 0b1 == 1 {
-            let int_part = LittleEndian::read_f64(&input[current_position..current_position+8]);
-            let frac_part = LittleEndian::read_f64(&input[current_position+8..current_position+16]);
+            let int_part = LittleEndian::read_f64(
+                input.get(current_position..current_position+8)
+                    .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "Input too short for time.int"))?
+            );
+            let frac_part = LittleEndian::read_f64(
+                input.get(current_position+8..current_position+16)
+                    .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "Input too short for time.frac"))?
+            );
             result.time = Some(seconds_to_nanoseconds(int_part, frac_part));
             current_position += 16;
         }
 
         if (flags >> DURATION) & 0b1 == 1 {
-            result.duration = Some(LittleEndian::read_f64(&input[current_position..current_position+8]));
+            result.duration = Some(LittleEndian::read_f64(
+                input.get(current_position..current_position+8)
+                    .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "Input too short for duration"))?
+            ));
             current_position += 8
         }
 
         if (flags >> LOCATION) & 0b1 == 1 {
             result.location = Some((
-                LittleEndian::read_f64(&input[current_position..current_position+8]),
-                LittleEndian::read_f64(&input[current_position+8..current_position+16]),
-                LittleEndian::read_f64(&input[current_position+16..current_position+24])
+                LittleEndian::read_f64(
+                    input.get(current_position..current_position+8)
+                        .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "Input too short for location.lat"))?
+                ),
+                LittleEndian::read_f64(
+                    input.get(current_position+8..current_position+16)
+                        .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "Input too short for location.lon"))?
+                ),
+                LittleEndian::read_f64(
+                    input.get(current_position+16..current_position+24)
+                        .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "Input too short for location.alt"))?
+                )
             ));
             current_position += 24
         }
