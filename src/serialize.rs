@@ -1,6 +1,27 @@
 use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
-
 use crate::{RFTapPacket, *};
+
+macro_rules! write_field {
+    (
+        $buffer:expr,
+        $method:ident,
+        $value:expr,
+        $flags:expr,
+        $flag:expr,
+        $name:literal
+    ) => {{
+        $flags |= 1 << $flag;
+
+        $buffer
+            .$method::<LittleEndian>($value)
+            .map_err(|e| {
+                std::io::Error::new(
+                    e.kind(),
+                    format!("failed to write {} field: {}", $name, e),
+                )
+            })?;
+    }};
+}
 
 impl<'a> RFTapPacket<'a> {
 
@@ -8,7 +29,7 @@ impl<'a> RFTapPacket<'a> {
     pub fn serialize(&self) -> Result<Vec<u8>, std::io::Error> {
         let mut buffer = Vec::with_capacity(100 + self.payload.len());
 
-        buffer.extend(vec![
+        buffer.extend_from_slice(&[
             b'R', b'F', b't', b'a', // magic
             0, 0, // placeholder for size
             0, 0, // placeholder for flags
@@ -19,54 +40,22 @@ impl<'a> RFTapPacket<'a> {
 
         if let Some(dlt) = self.dlt {
             length_32 += 1;
-            flags |= 1 << DLT;
-            buffer
-                .write_u32::<LittleEndian>(dlt)
-                .map_err(|e| {
-                    std::io::Error::new(
-                        e.kind(),
-                        format!("failed to write dlt field: {e}")
-                    )
-                })?;
+            write_field!(buffer, write_u32, dlt, flags, DLT, "dlt");
         }
 
         if let Some(freq) = self.freq {
             length_32 += 2;
-            flags |= 1 << FREQ;
-            buffer
-                .write_f64::<LittleEndian>(freq)
-                .map_err(|e| {
-                    std::io::Error::new(
-                        e.kind(),
-                        format!("failed to write freq field: {e}")
-                    )
-                })?;
+            write_field!(buffer, write_f64, freq, flags, FREQ, "freq");
         }
 
         if let Some(nomfreq) = self.nomfreq {
             length_32 += 2;
-            flags |= 1 << NOMFREQ;
-            buffer
-                .write_f64::<LittleEndian>(nomfreq)
-                .map_err(|e| {
-                    std::io::Error::new(
-                        e.kind(),
-                        format!("failed to write nomfreq field: {e}")
-                    )
-                })?;
+            write_field!(buffer, write_f64, nomfreq, flags, NOMFREQ, "nomfreq");
         }
 
         if let Some(freqofs) = self.freqofs {
             length_32 += 2;
-            flags |= 1 << FREQOFS;
-            buffer
-                .write_f64::<LittleEndian>(freqofs)
-                .map_err(|e| {
-                    std::io::Error::new(
-                        e.kind(),
-                        format!("failed to write freqofs field: {e}")
-                    )
-                })?;
+            write_field!(buffer, write_f64, freqofs, flags, FREQOFS, "freqofs");
         }
 
         if self.isdbm {
@@ -75,41 +64,17 @@ impl<'a> RFTapPacket<'a> {
 
         if let Some(power) = self.power {
             length_32 += 1;
-            flags |= 1 << POWER;
-            buffer
-                .write_f32::<LittleEndian>(power)
-                .map_err(|e| {
-                    std::io::Error::new(
-                        e.kind(),
-                        format!("failed to write power field: {e}")
-                    )
-                })?;
+            write_field!(buffer, write_f32, power, flags, POWER, "power");
         }
 
         if let Some(noise) = self.noise {
             length_32 += 1;
-            flags |= 1 << NOISE;
-            buffer
-                .write_f32::<LittleEndian>(noise)
-                .map_err(|e| {
-                    std::io::Error::new(
-                        e.kind(),
-                        format!("failed to write noise field: {e}")
-                    )
-                })?;
+            write_field!(buffer, write_f32, noise, flags, NOISE, "noise");
         }
 
         if let Some(snr) = self.snr {
             length_32 += 1;
-            flags |= 1 << SNR;
-            buffer
-                .write_f32::<LittleEndian>(snr)
-                .map_err(|e| {
-                    std::io::Error::new(
-                        e.kind(),
-                        format!("failed to write snr field: {e}")
-                    )
-                })?;
+            write_field!(buffer, write_f32, snr, flags, SNR, "snr");
         }
 
         if self.isunixtime {
@@ -118,15 +83,7 @@ impl<'a> RFTapPacket<'a> {
 
         if let Some(qual) = self.qual {
             length_32 += 1;
-            flags |= 1 << QUAL;
-            buffer
-                .write_f32::<LittleEndian>(qual)
-                .map_err(|e| {
-                    std::io::Error::new(
-                        e.kind(),
-                        format!("failed to write qual field: {e}")
-                    )
-                })?;
+            write_field!(buffer, write_f32, qual, flags, QUAL, "qual");
         }
 
         if let Some(time) = self.time {
@@ -155,15 +112,7 @@ impl<'a> RFTapPacket<'a> {
 
         if let Some(duration) = self.duration {
             length_32 += 2;
-            flags |= 1 << DURATION;
-            buffer
-                .write_f64::<LittleEndian>(duration)
-                .map_err(|e| {
-                    std::io::Error::new(
-                        e.kind(),
-                        format!("failed to write duration field: {e}")
-                    )
-                })?;
+            write_field!(buffer, write_f64, duration, flags, DURATION, "duration");
         }
 
         if let Some((lat, lon, alt)) = self.location {
