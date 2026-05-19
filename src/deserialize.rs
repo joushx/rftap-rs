@@ -3,6 +3,8 @@ use byteorder::{ByteOrder, LittleEndian};
 use crate::{RFTapPacket, *};
 
 impl<'a> RFTapPacket<'a> {
+
+    /// parses a RFTap header from a byte slice
     pub fn parse(input: &'a [u8]) -> Result<Self, std::io::Error> {
         if input.len() < 8 {
             return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Input too short"));

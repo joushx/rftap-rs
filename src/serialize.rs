@@ -3,12 +3,16 @@ use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
 use crate::{RFTapPacket, *};
 
 impl<'a> RFTapPacket<'a> {
+
+    /// serializes a RFTap packet into bytes
     pub fn serialize(&self) -> Result<Vec<u8>, std::io::Error> {
-        let mut buffer: Vec<u8> = vec![
+        let mut buffer = Vec::with_capacity(100 + self.payload.len());
+
+        buffer.extend(vec![
             b'R', b'F', b't', b'a', // magic
             0, 0, // placeholder for size
             0, 0, // placeholder for flags
-        ];
+        ]);
 
         let mut length_32: u16 = 2;
         let mut flags: u16 = 0;
