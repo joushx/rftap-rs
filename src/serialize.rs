@@ -96,7 +96,7 @@ impl<'a> RFTapPacket<'a> {
                 .map_err(|e| {
                     std::io::Error::new(
                         e.kind(),
-                        format!("failed to write time.int field: {e}")
+                        format!("failed to write time_int field: {e}")
                     )
                 })?;
 
@@ -105,7 +105,7 @@ impl<'a> RFTapPacket<'a> {
                 .map_err(|e| {
                     std::io::Error::new(
                         e.kind(),
-                        format!("failed to write time.frac field: {e}")
+                        format!("failed to write time_frac field: {e}")
                     )
                 })?;
         }
